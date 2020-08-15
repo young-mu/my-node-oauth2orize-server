@@ -82,7 +82,9 @@ server.exchange(oauth2orize.exchange.code(function(client, code, redirectUri, ca
 
       // Create a new access token
       var token = new Token({
-        value: uid(256),
+        access_token: uid(256),
+        refresh_token: uid(256),
+        expires_in: new Date().getTime() + 10 * 1000, // 10s
         clientId: authCode.clientId,
         userId: authCode.userId
       });
@@ -91,9 +93,32 @@ server.exchange(oauth2orize.exchange.code(function(client, code, redirectUri, ca
       token.save(function (err) {
         if (err) { return callback(err); }
 
-        callback(null, token);
+        callback(null, token.access_token, token.refresh_token, { 'expires_in': token.expires_in });
       });
     });
+  });
+}));
+
+server.exchange(oauth2orize.exchange.refreshToken(function (client, refreshToken, scope, callback) {
+  Token.findOne({ refresh_token: refreshToken }, function (err, oldToken) {
+    if (err) { return callback(err); }
+
+      // Create the new token
+      var newAccessToken = uid(256);
+      var newRefreshToken = uid(256);
+      var newExpiration = new Date().getTime() + 10 * 1000; // 10s
+
+      Token.updateOne({
+        refresh_token: refreshToken
+      }, {
+        access_token: newAccessToken,
+        refresh_token: newRefreshToken,
+        expires_in: newExpiration,
+      }, function (err, writeOpResult) {
+        if (err) { return callback(err); }
+
+        callback(null, newAccessToken, newRefreshToken, { 'expires_in': newExpiration });
+      });
   });
 }));
 
@@ -122,9 +147,13 @@ exports.authorization = [
       return callback(null, client, redirectUri);
     });
   }),
-  function(req, res) {
-    res.render('dialog', { transactionID: req.oauth2.transactionID, user: req.user, client: req.oauth2.client });
-  }
+  server.decision(function (req, done) {
+      console.log(req.oauth2.client.name);
+      done(null, { scope: req.scope });
+  })
+//  function(req, res) {
+//    res.render('dialog', { transactionID: req.oauth2.transactionID, user: req.user, client: req.oauth2.client });
+//  }
 ]
 
 // user decision endpoint

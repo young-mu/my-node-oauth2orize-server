@@ -41,7 +41,7 @@ var router = express.Router();
 // Create endpoint handlers for /users
 router.route('/user')
   .post(userController.postUser)
-  .get(authController.isAuthenticated, userController.getUser);
+  .get(authController.isBearerAuthenticated, userController.getUser);
 
 
 // Create endpoint handlers for /clients
@@ -52,7 +52,7 @@ router.route('/clients')
 // Create endpoint handlers for oauth2 authorize
 router.route('/oauth2/authorize')
   .get(authController.isAuthenticated, oauth2Controller.authorization)
-  .post(authController.isAuthenticated, oauth2Controller.decision);
+//  .post(authController.isAuthenticated, oauth2Controller.decision);
 
 // Create endpoint handlers for oauth2 token
 router.route('/oauth2/token')
@@ -64,9 +64,3 @@ app.use('/api', router);
 // Start the server, listening at port 3333
 app.listen(3333);
 console.log("Available at localhost:3333")
-
-
-
-
-
-

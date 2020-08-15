@@ -17,14 +17,29 @@ exports.postUser = function(req, res) {
 };
 
 // Create endpoint /api/users for GET
-exports.getUser = function(req, res) {
-  User.find(function(err, returnedUser) {
-    if (err)
-      return res.send(err);
+exports.getUser = [
+  ensureValidToken(),
+  function(req, res) {
+    User.find(function(err, returnedUser) {
+      if (err)
+        return res.send(err);
 
-    console.log(returnedUser);
-    var user = {};
-    user.username = returnedUser[0].username;
-    res.json(user);
-  });
-};
+      console.log(returnedUser);
+      var user = {};
+      user.username = returnedUser[0].username;
+      res.json(user);
+    });
+  }
+]
+
+function ensureValidToken () {
+    return function (req, res, next) {
+        if (req.authInfo.expiration < new Date().getTime()) {
+            res.send(401);
+        } else if (!req.authInfo || !req.authInfo.scope) {
+            res.send(403);
+        } else {
+            next();
+        }
+    }
+}

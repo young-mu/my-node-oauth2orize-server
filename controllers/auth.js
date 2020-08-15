@@ -6,6 +6,16 @@ var User = require('../models/user');
 var Client = require('../models/client');
 var Token = require('../models/token');
 
+passport.serializeUser(function (user, done) {
+  done(null, user._id);
+});
+
+passport.deserializeUser(function (id, done) {
+  User.findOne({ _id: id }, function (err, user) {
+    done(err, user);
+  });
+});
+
 passport.use(new BasicStrategy(
   function(username, password, callback) {
     User.findOne({ username: username }, function (err, user) {
@@ -44,7 +54,7 @@ passport.use('client-basic', new BasicStrategy(
 
 passport.use(new BearerStrategy(
   function(accessToken, callback) {
-    Token.findOne({value: accessToken }, function (err, token) {
+    Token.findOne({access_token: accessToken }, function (err, token) {
       if (err) { return callback(err); }
 
       // No token found
@@ -57,16 +67,13 @@ passport.use(new BearerStrategy(
         if (!user) { return callback(null, false); }
 
         // Simple example with no scope
-        callback(null, user, { scope: '*' });
+        var info = { scope: '*', expiration: token.expires_in }
+        callback(null, user, info);
       });
     });
   }
 ));
 
-exports.isAuthenticated = passport.authenticate(['basic', 'bearer'], { session : false });
+exports.isAuthenticated = passport.authenticate(['basic', 'bearer'], { session : true });
 exports.isClientAuthenticated = passport.authenticate('client-basic', { session : false });
 exports.isBearerAuthenticated = passport.authenticate('bearer', { session: false });
-
-
-
-
